@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Line Following Robot Controller</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .status-bar {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .status-item {
+            text-align: center;
+        }
+        
+        .status-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+        }
+        
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        
+        .btn-warning {
+            background: #ff9800;
+        }
+        
+        .btn-warning:hover {
+            background: #f57c00;
+        }
+        
+        .btn-info {
+            background: #2196F3;
+        }
+        
+        .btn-info:hover {
+            background: #0b7dda;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-control:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        
+        .row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .col {
+            flex: 1;
+        }
+        
+        .sensor-display {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            margin: 10px 0;
+        }
+        
+        .sensor-value {
+            padding: 8px 4px;
+            text-align: center;
+            font-size: 12px;
+            border-radius: 4px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+        }
+        
+        .sensor-active {
+            background: #333 !important;
+            color: white;
+        }
+        
+        .log {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        
+        .connected {
+            color: #4CAF50;
+        }
+        
+        .disconnected {
+            color: #f44336;
+        }
+        
+        .manual-control {
+            display: grid;
+            grid-template-columns: 1fr 100px 1fr;
+            gap: 10px;
+            align-items: center;
+            margin: 15px 0;
+        }
+        
+        .joystick {
+            width: 150px;
+            height: 150px;
+            border: 3px solid #ddd;
+            border-radius: 50%;
+            position: relative;
+            margin: 20px auto;
+            background: radial-gradient(circle, #f0f0f0 0%, #e0e0e0 100%);
+        }
+        
+        .joystick-handle {
+            width: 40px;
+            height: 40px;
+            background: #4CAF50;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .joystick-handle:active {
+            cursor: grabbing;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Line Following Robot Controller</h1>
+            <p>ESP32 BLE Remote Control Interface</p>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-label">Connection</div>
+                <div class="status-value" id="connectionStatus">Disconnected</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Robot Status</div>
+                <div class="status-value" id="robotStatus">Unknown</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Mode</div>
+                <div class="status-value" id="robotMode">Idle</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Line Position</div>
+                <div class="status-value" id="linePosition">---</div>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <!-- Connection Control -->
+            <div class="card">
+                <div class="card-title">🔗 Connection Control</div>
+                <button class="btn" id="connectBtn" onclick="connectToRobot()">Connect to Robot</button>
+                <button class="btn btn-danger" id="disconnectBtn" onclick="disconnectFromRobot()" disabled>Disconnect</button>
+                <button class="btn btn-info" onclick="getStatus()">Get Status</button>
+            </div>
+            
+            <!-- Robot Control -->
+            <div class="card">
+                <div class="card-title">🤖 Robot Control</div>
+                <button class="btn" onclick="startRobot()">▶️ Start Robot</button>
+                <button class="btn btn-warning" onclick="stopRobot()">⏸️ Stop Robot</button>
+                <button class="btn btn-danger" onclick="resetRobot()">🔄 Reset Robot</button>
+                <br>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-info" onclick="startCalibration('white')">🟦 Calibrate White</button>
+                    <button class="btn btn-info" onclick="startCalibration('black')">⬛ Calibrate Black</button>
+                </div>
+            </div>
+            
+            <!-- PID Parameters -->
+            <div class="card">
+                <div class="card-title">⚙️ PID Parameters</div>
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label">Kp</label>
+                            <input type="number" class="form-control" id="pidKp" step="0.1" value="1.6">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label">Ki</label>
+                            <input type="number" class="form-control" id="pidKi" step="0.01" value="0.08">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label">Kd</label>
+                            <input type="number" class="form-control" id="pidKd" step="0.1" value="4">
+                        </div>
+                    </div>
+                </div>
+                <button class="btn" onclick="updatePID()">Update PID</button>
+            </div>
+            
+            <!-- Speed Parameters -->
+            <div class="card">
+                <div class="card-title">⚡ Speed Parameters</div>
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label">Base Speed</label>
+                            <input type="number" class="form-control" id="speedBase" min="0" max="255" value="75">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label">Max Speed</label>
+                            <input type="number" class="form-control" id="speedMax" min="0" max="255" value="180">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label">Turn Speed</label>
+                            <input type="number" class="form-control" id="speedTurn" min="0" max="255" value="200">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label">Boost Speed</label>
+                            <input type="number" class="form-control" id="speedBoost" min="0" max="255" value="130">
+                        </div>
+                    </div>
+                </div>
+                <button class="btn" onclick="updateSpeeds()">Update Speeds</button>
+            </div>
+            
+            <!-- Advanced Parameters -->
+            <div class="card">
+                <div class="card-title">🔧 Advanced Parameters</div>
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label">Straight Threshold</label>
+                            <input type="number" class="form-control" id="straightThreshold" value="60">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label">Boost Enable Count</label>
+                            <input type="number" class="form-control" id="boostEnableCount" value="5">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label">Speed Step</label>
+                            <input type="number" class="form-control" id="speedStep" value="10">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label">Threshold Offset</label>
+                            <input type="number" class="form-control" id="thresholdOffset" value="200">
+                        </div>
+                    </div>
+                </div>
+                <button class="btn" onclick="updateAdvanced()">Update Advanced</button>
+            </div>
+            
+            <!-- Manual Control -->
+            <div class="card">
+                <div class="card-title">🎮 Manual Control</div>
+                <div class="manual-control">
+                    <div>
+                        <label class="form-label">Left Motor</label>
+                        <input type="range" class="form-control" id="leftMotor" min="-255" max="255" value="0" oninput="updateManualControl()">
+                        <div style="text-align: center; margin-top: 5px;" id="leftValue">0</div>
+                    </div>
+                    
+                    <div class="joystick" id="joystick">
+                        <div class="joystick-handle" id="joystickHandle"></div>
+                    </div>
+                    
+                    <div>
+                        <label class="form-label">Right Motor</label>
+                        <input type="range" class="form-control" id="rightMotor" min="-255" max="255" value="0" oninput="updateManualControl()">
+                        <div style="text-align: center; margin-top: 5px;" id="rightValue">0</div>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <button class="btn btn-warning" onclick="stopMotors()">⏹️ Stop Motors</button>
+                </div>
+            </div>
+            
+            <!-- Sensor Display -->
+            <div class="card">
+                <div class="card-title">📊 Sensor Data</div>
+                <button class="btn btn-info" onclick="getSensors()" style="margin-bottom: 15px;">📡 Get Sensors</button>
+                
+                <div>
+                    <strong>Digital Sensors (Black = Active):</strong>
+                    <div class="sensor-display" id="digitalSensors">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <strong>Raw Values:</strong>
+                    <div class="sensor-display" id="rawSensors">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Log Display -->
+            <div class="card">
+                <div class="card-title">📝 Communication Log</div>
+                <div class="log" id="logDisplay"></div>
+                <button class="btn btn-warning" onclick="clearLog()">Clear Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let bluetoothDevice;
+        let bluetoothServer;
+        let bluetoothService;
+        let bluetoothCharacteristic;
+        let isConnected = false;
+        
+        const SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
+        const CHARACTERISTIC_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
+        
+        // Initialize digital sensors display
+        function initSensorDisplay() {
+            const digitalContainer = document.getElementById('digitalSensors');
+            const rawContainer = document.getElementById('rawSensors');
+            
+            for (let i = 0; i < 16; i++) {
+                const digitalDiv = document.createElement('div');
+                digitalDiv.className = 'sensor-value';
+                digitalDiv.id = `digital-${i}`;
+                digitalDiv.textContent = '0';
+                digitalContainer.appendChild(digitalDiv);
+                
+                const rawDiv = document.createElement('div');
+                rawDiv.className = 'sensor-value';
+                rawDiv.id = `raw-${i}`;
+                rawDiv.textContent = '0';
+                rawContainer.appendChild(rawDiv);
+            }
+        }
+        
+        // Initialize joystick
+        function initJoystick() {
+            const joystick = document.getElementById('joystick');
+            const handle = document.getElementById('joystickHandle');
+            let isDragging = false;
+            
+            function updateJoystickPosition(x, y) {
+                const rect = joystick.getBoundingClientRect();
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const radius = centerX - 20; // Handle radius
+                
+                let deltaX = x - centerX;
+                let deltaY = y - centerY;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                if (distance > radius) {
+                    deltaX = (deltaX / distance) * radius;
+                    deltaY = (deltaY / distance) * radius;
+                }
+                
+                handle.style.left = (centerX + deltaX) + 'px';
+                handle.style.top = (centerY + deltaY) + 'px';
+                
+                // Convert to motor speeds
+                const leftSpeed = Math.round(-deltaY - deltaX);
+                const rightSpeed = Math.round(-deltaY + deltaX);
+                
+                // Constrain to -255 to 255
+                const constrainedLeft = Math.max(-255, Math.min(255, leftSpeed * 2));
+                const constrainedRight = Math.max(-255, Math.min(255, rightSpeed * 2));
+                
+                document.getElementById('leftMotor').value = constrainedLeft;
+                document.getElementById('rightMotor').value = constrainedRight;
+                document.getElementById('leftValue').textContent = constrainedLeft;
+                document.getElementById('rightValue').textContent = constrainedRight;
+                
+                if (isConnected) {
+                    sendManualControl(constrainedLeft, constrainedRight);
+                }
+            }
+            
+            handle.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                e.preventDefault();
+            });
+            
+            handle.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const rect = joystick.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    updateJoystickPosition(x, y);
+                }
+            });
+            
+            document.addEventListener('touchmove', (e) => {
+                if (isDragging) {
+                    const rect = joystick.getBoundingClientRect();
+                    const touch = e.touches[0];
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+                    updateJoystickPosition(x, y);
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    // Return to center
+                    handle.style.left = '50%';
+                    handle.style.top = '50%';
+                    document.getElementById('leftMotor').value = 0;
+                    document.getElementById('rightMotor').value = 0;
+                    document.getElementById('leftValue').textContent = '0';
+                    document.getElementById('rightValue').textContent = '0';
+                    if (isConnected) {
+                        sendManualControl(0, 0);
+                    }
+                }
+            });
+            
+            document.addEventListener('touchend', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    // Return to center
+                    handle.style.left = '50%';
+                    handle.style.top = '50%';
+                    document.getElementById('leftMotor').value = 0;
+                    document.getElementById('rightMotor').value = 0;
+                    document.getElementById('leftValue').textContent = '0';
+                    document.getElementById('rightValue').textContent = '0';
+                    if (isConnected) {
+                        sendManualControl(0, 0);
+                    }
+                }
+            });
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initSensorDisplay();
+            initJoystick();
+        });
+        
+        // Logging function
+        function addLog(message) {
+            const logDisplay = document.getElementById('logDisplay');
+            const timestamp = new Date().toLocaleTimeString();
+            logDisplay.textContent += `[${timestamp}] ${message}\n`;
+            logDisplay.scrollTop = logDisplay.scrollHeight;
+        }
+        
+        // Clear log
+        function clearLog() {
+            document.getElementById('logDisplay').textContent = '';
+        }
+        
+        // Connect to robot
+        async function connectToRobot() {
+            try {
+                addLog('🔍 Searching for robot...');
+                
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'LineFollowing_Robot' }],
+                    optionalServices: [SERVICE_UUID]
+                });
+                
+                addLog('📱 Connecting to robot...');
+                bluetoothServer = await bluetoothDevice.gatt.connect();
+                
+                bluetoothService = await bluetoothServer.getPrimaryService(SERVICE_UUID);
+                bluetoothCharacteristic = await bluetoothService.getCharacteristic(CHARACTERISTIC_UUID);
+                
+                // Set up notifications
+                await bluetoothCharacteristic.startNotifications();
+                bluetoothCharacteristic.addEventListener('characteristicvaluechanged', handleNotification);
+                
+                isConnected = true;
+                updateConnectionStatus();
+                
+                addLog('✅ Connected successfully!');
+                
+                // Get initial status
+                setTimeout(() => getStatus(), 1000);
+                
+            } catch (error) {
+                addLog('❌ Connection failed: ' + error.message);
+                console.error('Connection error:', error);
+            }
+        }
+        
+        // Disconnect from robot
+        async function disconnectFromRobot() {
+            try {
+                if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+                    await bluetoothDevice.gatt.disconnect();
+                }
+                isConnected = false;
+                updateConnectionStatus();
+                addLog('🔌 Disconnected from robot');
+            } catch (error) {
+                addLog('❌ Disconnect error: ' + error.message);
+            }
+        }
+        
+        // Update connection status display
+        function updateConnectionStatus() {
+            const statusElement = document.getElementById('connectionStatus');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            
+            if (isConnected) {
+                statusElement.textContent = 'Connected';
+                statusElement.className = 'status-value connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+            } else {
+                statusElement.textContent = 'Disconnected';
+                statusElement.className = 'status-value disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            }
+        }
+        
+        // Handle notifications from robot
+        function handleNotification(event) {
+            const value = new TextDecoder().decode(event.target.value);
+            
+            try {
+                const data = JSON.parse(value);
+                addLog('📥 ' + data.type + ': ' + JSON.stringify(data));
+                
+                if (data.type === 'status') {
+                    updateRobotStatus(data);
+                } else if (data.type === 'sensors') {
+                    updateSensorDisplay(data);
+                } else if (data.type === 'response') {
+                    if (data.status === 'ERROR') {
+                        addLog('⚠️ Error: ' + data.message);
+                    } else {
+                        addLog('✅ ' + data.message);
+                    }
+                } else if (data.type === 'calibration_progress') {
+                    addLog(`🔧 ${data.stage} calibration: ${data.progress}%`);
+                }
+            } catch (error) {
+                addLog('📥 Raw: ' + value);
+            }
+        }
+            // Update robot status display
+            function updateRobotStatus(data) {
+                document.getElementById('robotStatus').textContent = data.status || 'Unknown';
+                document.getElementById('robotMode').textContent = getModeText(data.mode);
+                
+                if (data.linePosition !== undefined) {
+                    document.getElementById('linePosition').textContent = data.linePosition;
+                }
+                
+                // Update PID values only on first connection
+                if (data.pid && !window.pidInitialized) {
+                    document.getElementById('pidKp').value = data.pid.kp;
+                    document.getElementById('pidKi').value = data.pid.ki;
+                    document.getElementById('pidKd').value = data.pid.kd;
+                    window.pidInitialized = true;
+                }
+                
+                // Update speed values only on first connection
+                if (data.speeds && !window.speedsInitialized) {
+                    document.getElementById('speedBase').value = data.speeds.base;
+                    document.getElementById('speedMax').value = data.speeds.max;
+                    document.getElementById('speedTurn').value = data.speeds.turn;
+                    document.getElementById('speedBoost').value = data.speeds.boost;
+                    window.speedsInitialized = true;
+                }
+                
+                // Update advanced values only on first connection
+                if (data.advanced && !window.advancedInitialized) {
+                    document.getElementById('straightThreshold').value = data.advanced.straightThreshold;
+                    document.getElementById('boostEnableCount').value = data.advanced.boostEnableCount;
+                    document.getElementById('speedStep').value = data.advanced.speedStep;
+                    document.getElementById('thresholdOffset').value = data.advanced.thresholdOffset;
+                    window.advancedInitialized = true;
+                }
+            }
+                
+        // Update sensor display
+        function updateSensorDisplay(data) {
+            if (data.digital) {
+                for (let i = 0; i < 16; i++) {
+                    const element = document.getElementById(`digital-${i}`);
+                    element.textContent = data.digital[i] ? '1' : '0';
+                    element.className = data.digital[i] ? 'sensor-value sensor-active' : 'sensor-value';
+                }
+            }
+            
+            if (data.raw) {
+                for (let i = 0; i < 16; i++) {
+                    const element = document.getElementById(`raw-${i}`);
+                    element.textContent = data.raw[i];
+                }
+            }
+            
+            if (data.linePosition !== undefined) {
+                document.getElementById('linePosition').textContent = data.linePosition;
+            }
+        }
+        
+        // Get mode text
+        function getModeText(mode) {
+            const modes = {
+                0: 'Idle',
+                1: 'BLE',
+                2: 'Manual Cal White',
+                3: 'Manual Cal Black',
+                4: 'Manual Running'
+            };
+            return modes[mode] || 'Unknown';
+        }
+        
+        // Send command to robot
+        async function sendCommand(command) {
+            if (!isConnected || !bluetoothCharacteristic) {
+                addLog('❌ Not connected to robot');
+                return;
+            }
+            
+            try {
+                const commandString = JSON.stringify(command);
+                addLog('📤 Sending: ' + commandString);
+                
+                const encoder = new TextEncoder();
+                await bluetoothCharacteristic.writeValue(encoder.encode(commandString));
+            } catch (error) {
+                addLog('❌ Send error: ' + error.message);
+                console.error('Send error:', error);
+            }
+        }
+        
+        // Robot control functions
+        function getStatus() {
+            sendCommand({ cmd: 'GET_STATUS' });
+        }
+        
+        function updatePID() {
+            const kp = parseFloat(document.getElementById('pidKp').value);
+            const ki = parseFloat(document.getElementById('pidKi').value);
+            const kd = parseFloat(document.getElementById('pidKd').value);
+            
+            sendCommand({
+                cmd: 'SET_PID',
+                kp: kp,
+                ki: ki,
+                kd: kd
+            });
+        }
+        
+        function updateSpeeds() {
+            const base = parseInt(document.getElementById('speedBase').value);
+            const max = parseInt(document.getElementById('speedMax').value);
+            const turn = parseInt(document.getElementById('speedTurn').value);
+            const boost = parseInt(document.getElementById('speedBoost').value);
+            
+            sendCommand({
+                cmd: 'SET_SPEEDS',
+                base: base,
+                max: max,
+                turn: turn,
+                boost: boost
+            });
+        }
+        
+        function updateAdvanced() {
+            const straightThreshold = parseInt(document.getElementById('straightThreshold').value);
+            const boostEnableCount = parseInt(document.getElementById('boostEnableCount').value);
+            const speedStep = parseInt(document.getElementById('speedStep').value);
+            const thresholdOffset = parseInt(document.getElementById('thresholdOffset').value);
+            
+            sendCommand({
+                cmd: 'SET_ADVANCED',
+                straightThreshold: straightThreshold,
+                boostEnableCount: boostEnableCount,
+                speedStep: speedStep,
+                speedChangeDelay: 2, // Fixed value
+                thresholdOffset: thresholdOffset
+            });
+        }
+        
+        function startCalibration(type) {
+            sendCommand({
+                cmd: 'START_CALIBRATION',
+                type: type
+            });
+        }
+        
+        function startRobot() {
+            sendCommand({ cmd: 'START_ROBOT' });
+        }
+        
+        function stopRobot() {
+            sendCommand({ cmd: 'STOP_ROBOT' });
+        }
+        
+        function resetRobot() {
+            sendCommand({ cmd: 'RESET_ROBOT' });
+        }
+        
+        function getSensors() {
+            sendCommand({ cmd: 'GET_SENSORS' });
+        }
+        
+        function updateManualControl() {
+            const left = parseInt(document.getElementById('leftMotor').value);
+            const right = parseInt(document.getElementById('rightMotor').value);
+            
+            document.getElementById('leftValue').textContent = left;
+            document.getElementById('rightValue').textContent = right;
+            
+            if (isConnected) {
+                sendManualControl(left, right);
+            }
+        }
+        
+        function sendManualControl(left, right) {
+            sendCommand({
+                cmd: 'MANUAL_CONTROL',
+                left: left,
+                right: right
+            });
+        }
+        
+        function stopMotors() {
+            document.getElementById('leftMotor').value = 0;
+            document.getElementById('rightMotor').value = 0;
+            document.getElementById('leftValue').textContent = '0';
+            document.getElementById('rightValue').textContent = '0';
+            
+            // Reset joystick
+            const handle = document.getElementById('joystickHandle');
+            handle.style.left = '50%';
+            handle.style.top = '50%';
+            
+            sendManualControl(0, 0);
+        }
+        
+        // Auto-refresh sensors when connected
+        setInterval(() => {
+            if (isConnected) {
+                getSensors();
+            }
+        }, 3000);
+        
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+            if (isConnected) {
+                disconnectFromRobot();
+            }
+        });
+    </script>
+</body>
+</html>
